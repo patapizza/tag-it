@@ -89,6 +89,87 @@
   (display (explode-list lst))
   (newline))
 
+; build the row labelled tag for the B matrix
+; @in
+;   wts-dict: dictionary of (word/tag, count)
+;   words: list of unique words
+;   tag: tag labelling the row
+;   tag-count: number of occurrences of tag
+; @out
+;   row: the row labelled tag in B matrix
+(define get-b-row
+  (lambda (wts-dict words tag tag-count
+		    [row '()])
+    (if (null? words)
+      row
+      (get-b-row wts-dict (cdr words) tag tag-count (append row (/ (dict-ref wts-dict (string-append (car words) "/" tag))))))))
+
+; build B matrix
+; @in
+;   wts-dict: dictionary of (word/tag, count)
+;   tags-dict: dictionary of (tag, count)
+;   words: list of unique words
+;   tags: list of unique tags
+; @out
+;   matrix: the matrix of probabilities of words appearing
+(define get-b-matrix
+  (lambda (wts-dict tags-dict words tags
+		    [matrix '()])
+    (if (null? tags)
+      matrix
+      (get-b-matrix wts-dict tags-dict words (cdr tags) (append matrix (get-b-row wts-dict words (car tags) (dict-ref tags-dict (car tags))))))))
+
+; count pairs of following tags
+; @in
+;   tag1: the first tag
+;   tag2: the following tag
+;   tags: the tags list
+; @out
+;   count: the amount of times tag1 is followed by tag2
+(define count-next
+  (lambda (tag1 tag2 tags
+		[count 0])
+    (if (null? (cadr tags))
+      count
+      (count-next tag1 tag2 (cdr tags) 
+		  (if (and
+			(string=? (car tags) tag1)
+			(string=? (cadr tags) tag2))
+		    (+ count 1)
+		    count)))))
+
+; build the row labelled tag for the A matrix
+; @in
+;   tags-dict: dictionary of (tag, count)
+;   tags: list of tags as in text
+;   tag: tag labelling the row
+;   tag-count: number of occurrences of tag
+;   taglist: list of unique tags
+; @out
+;   row: the row labelled tag in A matrix
+(define get-a-row
+  (lambda (tags-dict tags tag tag-count taglist
+		     [row '()])
+    (if (null? taglist)
+      row
+      (get-a-row tags-dict tags tag tag-count (cdr taglist) (append row (/ (count-next tag (car taglist) tags) tag-count))))))
+
+; build the A matrix
+; @in
+;   tags-dict: dictionary of (tag, count)
+;   tags: list of tags
+;   taglist: index of (unique) tags
+;   taglist-left: rows left to build
+; @out
+;   matrix: the matrix of probabilities of tags appearing
+(define get-a-matrix
+  (lambda (tags-dict tags taglist
+		     [taglist-left taglist]
+		     [matrix '()])
+    (if (null? taglist-left)
+      matrix
+      (get-a-matrix tags-dict tags taglist (cdr taglist-left) (append matrix (get-a-row tags-dict tags (car taglist-left) (dict-ref tags-dict (car taglist-left)) taglist))))))
+
 ; @todo: optimize vars
 
 ; retrieve list of word/tag
@@ -106,9 +187,12 @@
 ; filter out duplicates of words list
        [words-unique (filter-unique words)]
 ;   retrieve its size
-       [words-size (length words-unique)])
-  (printf "tag size: ~a words size: ~a" tags-size words-size)
-  (newline))
-; build word index
+       [words-size (length words-unique)]
+; build word index?: (list->dict words)?
 ; build tag index
-; build A and B matrices
+       [taglist (filter-unique tags)]
+; build A matrix
+       [a-matrix (get-a-matrix tags-dict tags taglist)]
+; build B matrix
+       [b-matrix (get-b-matrix wts-dict tags-dict words tags)])
+    (printf "a-matrix: ~a\n b-matrix: ~a\n" a-matrix b-matrix))
