@@ -101,8 +101,15 @@
   (lambda (wts-dict words tag tag-count
 		    [row '()])
     (if (null? words)
-      row
-      (get-b-row wts-dict (cdr words) tag tag-count (append row (/ (dict-ref wts-dict (string-append (car words) "/" tag))))))))
+      (flatten row)
+      (get-b-row wts-dict (cdr words) tag tag-count (list row (/ (dict-ref wts-dict (string-append (car words) "/" tag) 0) tag-count))))))
+
+; basic testing
+(let ([wts-dict '(("w1/t1" . 1) ("w2/t1" . 2) ("w3/t2" . 1) ("w1/t2" . 4) ("w2/t2" . 5) ("w4/t3" . 2))]
+      [words '("w1" "w2" "w3" "w4")]
+      [tag "t2"]
+      [tag-count 10])
+  (displayln (get-b-row wts-dict words tag tag-count)))
 
 ; build B matrix
 ; @in
@@ -116,8 +123,17 @@
   (lambda (wts-dict tags-dict words tags
 		    [matrix '()])
     (if (null? tags)
-      matrix
-      (get-b-matrix wts-dict tags-dict words (cdr tags) (append matrix (get-b-row wts-dict words (car tags) (dict-ref tags-dict (car tags))))))))
+      (make-matrix (dict-count tags-dict) (length words) (flatten matrix))
+      (get-b-matrix wts-dict tags-dict words (cdr tags) (list matrix (get-b-row wts-dict words (car tags) (dict-ref tags-dict (car tags))))))))
+
+; basic testing
+(let ([wts-dict '(("w1/t1" . 1) ("w2/t1" . 2) ("w3/t2" . 1) ("w1/t2" . 4) ("w2/t2" . 5) ("w4/t3" . 2))]
+      [tags-dict '(("t1" . 3) ("t2" . 10) ("t3" . 2))]
+      [words '("w1" "w2" "w3" "w4")]
+      [tags '("t1" "t2" "t3")])
+  (displayln (matrix-render (get-b-matrix wts-dict tags-dict words tags))))
+
+; @todo: count-prev instead with start-of-sentence symbol <s>
 
 ; count pairs of following tags
 ; @in
@@ -129,7 +145,7 @@
 (define count-next
   (lambda (tag1 tag2 tags
 		[count 0])
-    (if (null? (cadr tags))
+    (if (null? (cdr tags))
       count
       (count-next tag1 tag2 (cdr tags) 
 		  (if (and
@@ -138,9 +154,14 @@
 		    (+ count 1)
 		    count)))))
 
+; basic testing
+(let ([tag1 "t1"]
+      [tag2 "t2"]
+      [tags '("t1" "t1" "t2" "t3" "t2" "t4" "t5" "t1" "t2" "t2" "t3" "t1" "t2" "t2" "t5")])
+  (displayln (count-next tag1 tag2 tags)))
+
 ; build the row labelled tag for the A matrix
 ; @in
-;   tags-dict: dictionary of (tag, count)
 ;   tags: list of tags as in text
 ;   tag: tag labelling the row
 ;   tag-count: number of occurrences of tag
@@ -148,11 +169,18 @@
 ; @out
 ;   row: the row labelled tag in A matrix
 (define get-a-row
-  (lambda (tags-dict tags tag tag-count taglist
+  (lambda (tags tag tag-count taglist
 		     [row '()])
     (if (null? taglist)
-      row
-      (get-a-row tags-dict tags tag tag-count (cdr taglist) (append row (/ (count-next tag (car taglist) tags) tag-count))))))
+      (flatten row)
+      (get-a-row tags tag tag-count (cdr taglist) (list row (/ (count-next tag (car taglist) tags) tag-count))))))
+
+; basic testing
+(let ([tags '("t1" "t2" "t2" "t3" "t1" "t4" "t2" "t5" "t1" "t1" "t2" "t3" "t5")]
+      [tag "t1"]
+      [tag-count 4]
+      [taglist '("t1" "t2" "t3" "t4" "t5")])
+  (displayln (get-a-row tags tag tag-count taglist)))
 
 ; build the A matrix
 ; @in
@@ -167,8 +195,14 @@
 		     [taglist-left taglist]
 		     [matrix '()])
     (if (null? taglist-left)
-      matrix
-      (get-a-matrix tags-dict tags taglist (cdr taglist-left) (append matrix (get-a-row tags-dict tags (car taglist-left) (dict-ref tags-dict (car taglist-left)) taglist))))))
+      (make-matrix (length taglist) (length taglist) (flatten matrix))
+      (get-a-matrix tags-dict tags taglist (cdr taglist-left) (list matrix (get-a-row tags (car taglist-left) (dict-ref tags-dict (car taglist-left)) taglist))))))
+
+; basic testing
+(let ([tags-dict '(("t1" . 5) ("t2" . 3) ("t3" . 1) ("t4" . 3) ("t5" . 2))]
+      [tags '("t1" "t4" "t5" "t2" "t1" "t1" "t3" "t2" "t1" "t4" "t5" "t1" "t4" "t2")]
+      [taglist '("t1" "t2" "t3" "t4" "t5")])
+  (displayln (matrix-render (get-a-matrix tags-dict tags taglist))))
 
 ; @todo: optimize vars
 
