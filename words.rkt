@@ -24,10 +24,8 @@
 
 ; basic testing
 (let ([lst '(1 1 2 3 4 2 5 1 42)])
-  (display lst)
-  (newline)
-  (display (filter-unique lst))
-  (newline))
+  (displayln lst)
+  (displayln (filter-unique lst)))
 
 ; retrieve list of word/tag
 ; @in
@@ -47,8 +45,7 @@
 				 (regexp-split #rx"[ \n\t]+" (file->string (car ins)))))))))
 
 ; basic testing
-(display (get-wts))
-(newline)
+(displayln (get-wts))
 
 ; count occurrences
 ; @in
@@ -64,10 +61,8 @@
 
 ; basic testing
 (let ([lst '(1 1 2 3 4 2 5 1 42)])
-  (display lst)
-  (newline)
-  (display (list->dict lst))
-  (newline))
+  (displayln lst)
+  (displayln (list->dict lst)))
 
 ; extract words and tags in two lists
 ; @in
@@ -87,10 +82,8 @@
 
 ; basic testing
 (let ([lst '("1/2" "3/4" "5/6" "7/8")])
-  (display lst)
-  (newline)
-  (display (explode-list lst))
-  (newline))
+  (displayln lst)
+  (displayln (explode-list lst)))
 
 ; build the row labelled tag for the B matrix
 ; @in
@@ -179,7 +172,6 @@
     (if (null? taglist)
       (flatten row)
       (get-a-row tags tag tag-count (cdr taglist) (list row (/ (count-next tag (car taglist) tags) tag-count))))))
-      ;(get-a-row tags tag tag-count (cdr taglist) (list row (count-next tag (car taglist) (reverse tags)))))))
 
 ; basic testing
 (let ([tags '("t1" "t2" "t2" "t3" "t1" "t4" "t2" "t5" "t1" "t1" "t2" "t3" "t5")]
@@ -228,7 +220,6 @@
        [words-unique (filter-unique words)]
 ;   retrieve its size
        [words-size (length words-unique)]
-; build word index?: (list->dict words)?
 ; build tag index
        [taglist (filter-unique tags)]
 ; build A matrix
