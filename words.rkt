@@ -147,7 +147,7 @@
       [tags '("t1" "t2" "t3")])
   (displayln (matrix-render (get-b-matrix wts-dict tags-dict words tags))))
 
-; @todo: take care of start-of-sentence <s> and end-of-sentence </s> symbols
+; @todo: add start-of-sentence <s> and end-of-sentence </s> symbols
 
 ; count pairs of following tags
 ; @in
@@ -218,14 +218,29 @@
       [taglist '("t1" "t2" "t3" "t4" "t5")])
   (displayln (matrix-render (get-a-matrix tags-dict tags taglist))))
 
+; @todo: address the unknown words issue
+
+; perform the initialization step of the Viterbi algorithm
+; @in
+;   a-matrix: the A matrix
+;   b-matrix: the B matrix
+;   o1: col index of the first word (observation) in the B matrix
+;   tags-index: list of (tag, index) pairs
+; @out
+;   viterbi: a matrix whose first column is initialized
+;   backptr: a matrix whose first column is initialized
 (define viterbi-init
-  (lambda (a-matrix b-matrix o1 taglist tags-index
+  (lambda (a-matrix b-matrix o1 tags-index
 		    [viterbi '()]
 		    [backptr '()])
-    (if (null? taglist)
-      (list viterbi backptr)
-      (viterbi-init a-matrix b-matrix (cdr taglist) (append viterbi (* (matrix-ref 0 (hash-ref (car tags) tags-index) a-matrix)
-								       (matrix-ref (hash-ref (car tags) tags-index) o1 b-matrix)))))))
+    (let ([i (cadar tags-index)])
+      (if (null? taglist)
+	(list viterbi backptr)
+	(viterbi-init a-matrix b-matrix o1
+		      (cdr tags-index)
+		      (list viterbi (* (matrix-ref 0 i a-matrix)
+				       (matrix-ref i o1 b-matrix)))
+		      (append backptr 0))))))
 
 ; @todo: optimize vars
 
@@ -239,16 +254,18 @@
        [tags (cadr wts-exploded)]
 ; make a dictionary tag -> count
        [tags-dict (list->dict tags)]
-;   retrieve its size
+; retrieve its size
        [tags-size (dict-count tags-dict)]
 ; filter out duplicates of words list
        [words-unique (filter-unique words)]
-;   retrieve its size
+; retrieve its size
        [words-size (length words-unique)]
 ; filter out duplicates of tags list
        [tags-unique (filter-unique tags)]
-; build tags index
-       [tags-index (make-hash (index-list tags-unique))]
+; build tags index (make-hash)?
+       [tags-index (index-list tags-unique)]
+; build words index (make-hash)?
+       [words-index (index-list words-unique)]
 ; build A matrix
        [a-matrix (get-a-matrix tags-dict tags tags-unique)]
 ; build B matrix
