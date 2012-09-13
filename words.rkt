@@ -2,6 +2,8 @@
 
 #lang racket
 
+; @todo: build sparse matrix object
+
 (require htdp/matrix)
 
 ; filter out duplicate values
@@ -34,7 +36,8 @@
 ;   wts: list of word/tag
 (define get-wts
   (lambda ([ins (find-files (lambda (arg)
-			      (regexp-match-exact? #px".+c[a][0-9]{2}" arg))
+			      ;(regexp-match-exact? #px".+c[a-r][0-9]{2}" arg))
+			      (regexp-match-exact? #px".+ca01" arg))
 			    (build-path (current-directory) "brown"))]
 	   [wts '()])
     (if (null? ins)
@@ -123,7 +126,9 @@
   (lambda (wts-dict tags-dict words tags
 		    [matrix '()])
     (if (null? tags)
-      (make-matrix (dict-count tags-dict) (length words) (flatten matrix))
+      (begin
+	(printf "(~a x ~a) matrix --> ~a\n" (dict-count tags-dict) (length words) (length (flatten matrix)))
+        (make-matrix (dict-count tags-dict) (length words) (flatten matrix)))
       (get-b-matrix wts-dict tags-dict words (cdr tags) (list matrix (get-b-row wts-dict words (car tags) (dict-ref tags-dict (car tags))))))))
 
 ; basic testing
@@ -133,7 +138,7 @@
       [tags '("t1" "t2" "t3")])
   (displayln (matrix-render (get-b-matrix wts-dict tags-dict words tags))))
 
-; @todo: count-prev instead with start-of-sentence symbol <s>
+; @todo: take care of start-of-sentence <s> and end-of-sentence </s> symbols
 
 ; count pairs of following tags
 ; @in
@@ -174,6 +179,7 @@
     (if (null? taglist)
       (flatten row)
       (get-a-row tags tag tag-count (cdr taglist) (list row (/ (count-next tag (car taglist) tags) tag-count))))))
+      ;(get-a-row tags tag tag-count (cdr taglist) (list row (count-next tag (car taglist) (reverse tags)))))))
 
 ; basic testing
 (let ([tags '("t1" "t2" "t2" "t3" "t1" "t4" "t2" "t5" "t1" "t1" "t2" "t3" "t5")]
@@ -228,5 +234,5 @@
 ; build A matrix
        [a-matrix (get-a-matrix tags-dict tags taglist)]
 ; build B matrix
-       [b-matrix (get-b-matrix wts-dict tags-dict words tags)])
-    (printf "a-matrix: ~a\n b-matrix: ~a\n" a-matrix b-matrix))
+       [b-matrix (get-b-matrix wts-dict tags-dict words taglist)])
+    (printf "a-matrix: ~a\n b-matrix: ~a\n" (matrix-render a-matrix) (matrix-render b-matrix)))
