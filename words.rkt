@@ -85,6 +85,22 @@
   (displayln lst)
   (displayln (explode-list lst)))
 
+; build a list of pairs (item, index)
+; @in
+;   lst: a list
+; @out
+;   a list of pairs (item, index)
+
+(define index-list
+  (lambda (lst
+	    [i 0])
+    (if (null? lst)
+      '()
+      (cons (cons (car lst) i) (index-list (cdr lst) (+ i 1))))))
+
+; basic testing
+(displayln (index-list '("t1" "t2" "t3" "t4")))
+
 ; build the row labelled tag for the B matrix
 ; @in
 ;   wts-dict: dictionary of (word/tag, count)
@@ -202,6 +218,15 @@
       [taglist '("t1" "t2" "t3" "t4" "t5")])
   (displayln (matrix-render (get-a-matrix tags-dict tags taglist))))
 
+(define viterbi-init
+  (lambda (a-matrix b-matrix o1 taglist tags-index
+		    [viterbi '()]
+		    [backptr '()])
+    (if (null? taglist)
+      (list viterbi backptr)
+      (viterbi-init a-matrix b-matrix (cdr taglist) (append viterbi (* (matrix-ref 0 (hash-ref (car tags) tags-index) a-matrix)
+								       (matrix-ref (hash-ref (car tags) tags-index) o1 b-matrix)))))))
+
 ; @todo: optimize vars
 
 ; retrieve list of word/tag
@@ -220,10 +245,12 @@
        [words-unique (filter-unique words)]
 ;   retrieve its size
        [words-size (length words-unique)]
-; build tag index
-       [taglist (filter-unique tags)]
+; filter out duplicates of tags list
+       [tags-unique (filter-unique tags)]
+; build tags index
+       [tags-index (make-hash (index-list tags-unique))]
 ; build A matrix
-       [a-matrix (get-a-matrix tags-dict tags taglist)]
+       [a-matrix (get-a-matrix tags-dict tags tags-unique)]
 ; build B matrix
-       [b-matrix (get-b-matrix wts-dict tags-dict words taglist)])
+       [b-matrix (get-b-matrix wts-dict tags-dict words tags-unique)])
     (printf "a-matrix: ~a\n b-matrix: ~a\n" (matrix-render a-matrix) (matrix-render b-matrix)))
