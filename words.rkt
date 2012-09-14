@@ -227,7 +227,7 @@
 ;   b-matrix: the B matrix
 ;   o1: col index of the first word (observation) in the B matrix
 ;   tags-index: list of (tag, index) pairs
-;   viterbi: a (len(tags) + 2) x len(o) matrix
+;   viterbi: a (len(tags) + 2) x len(obs) matrix
 ; @out
 ;   viterbi: a matrix whose first column is initialized
 (define viterbi-init
@@ -239,6 +239,41 @@
 		      (cdr tags-index)
 		      (matrix-set viterbi i 0 (* (matrix-ref a-matrix 0 i)
 						 (matrix-ref b-matrix i o1))))))))
+
+; perform the recursion step of the Viterbi algorithm
+; @in
+;   a-matrix: the A matrix
+;   b-matrix: the B matrix
+;   obs: col indexes of observations in the B matrix
+;   tags-index: list of (tag, index) pairs
+;   viterbi: a (len(tags) + 2) x len(obs) initialized matrix
+;   backptr: a (len(tags) + 2) x len(obs) initialized matrix
+; @out
+;   viterbi: an initialized matrix, but the last col
+;   backptr: an initialized matrix, but the last col
+(define viterbi-loop
+  (lambda (a-matrix b-matrix obs tags-index viterbi backptr)
+    (if (null? obs)
+      (list viterbi backptr)
+      (let* ([inner-loop (lambda (tags-index vit back)
+			  (if (null? tags-index)
+			    (list vit back)
+			    (inner-loop (cdr tags-index) vit back)))]
+	    [pair (inner-loop viterbi backptr)])
+	(viterbi-loop a-matrix b-matrix (cdr obs) tags-index (car pair) (cdar pair))))))
+
+; build a list of observations' indexes
+; @in
+;   obs: list of observations
+;   words-index: hashmap of (word, index)
+; @out
+;   obs-index: list of observations' indexes
+(define index-words
+  (lambda (obs words-index
+	       [obs-index '()])
+    (if (null? obs)
+      (flatten obs-index)
+      (index-words (cdr obs) words-index (list obs-index (hash-ref words-index (car obs)))))))
 
 ; @todo: optimize vars
 
