@@ -257,7 +257,7 @@
 		    [t 1])
     (if (null? obs)
       (list viterbi backptr)
-      (let* ([inner-loop (lambda (vit back
+      (letrec ([inner-loop (lambda (vit back
 				      [tags-left tags-index])
 			  (if (null? tags-left)
 			    (list vit back)
@@ -265,9 +265,11 @@
 			      (inner-loop
 			        (matrix-set vit s t (get-max vit s t a-matrix b-matrix tags-index (car obs)))
 				(matrix-set back s t (cdr (get-arg-max vit s t a-matrix tags-index)))
-				(cdr tags-left)))i))]
+				(cdr tags-left)))))]
 	    [pair (inner-loop viterbi backptr)])
-	(viterbi-loop a-matrix b-matrix (cdr obs) tags-index (car pair) (cdar pair) (+ t 1))))))
+	(viterbi-loop a-matrix b-matrix (cdr obs) tags-index (car pair) (cadr pair) (+ t 1))))))
+
+; @todo: combine get-max and get-arg-max in one proc
 
 ; return the maximum probability
 ; @in
@@ -372,4 +374,15 @@
 ; 0-filled list to populate viterbi and backptr matrices
        [lst-0 (build-list (* n m) (lambda (x) 0))])
     (printf "a-matrix: ~a\n b-matrix: ~a\n" (matrix-render a-matrix) (matrix-render b-matrix))
-    (displayln (matrix-render (viterbi-init a-matrix b-matrix (hash-ref words-index (car obs)) tags-index (make-matrix n m lst-0)))))
+    (displayln (matrix-render (viterbi-loop
+				a-matrix
+				b-matrix
+				(index-words obs words-index)
+				tags-index
+				(viterbi-init
+				  a-matrix
+				  b-matrix
+				  (hash-ref words-index (car obs))
+				  tags-index
+				  (make-matrix n m lst-0))
+				lst-0))))
