@@ -219,6 +219,7 @@
   (displayln (matrix-render (get-a-matrix tags-dict tags taglist))))
 
 ; @todo: address the unknown words issue
+; @todo: optimize by building a list instead of operating on the matrix itself
 
 ; perform the initialization step of the Viterbi algorithm
 ; @in
@@ -226,21 +227,18 @@
 ;   b-matrix: the B matrix
 ;   o1: col index of the first word (observation) in the B matrix
 ;   tags-index: list of (tag, index) pairs
+;   viterbi: a (len(tags) + 2) x len(o) matrix
 ; @out
 ;   viterbi: a matrix whose first column is initialized
-;   backptr: a matrix whose first column is initialized
 (define viterbi-init
-  (lambda (a-matrix b-matrix o1 tags-index
-		    [viterbi '()]
-		    [backptr '()])
-    (let ([i (cadar tags-index)])
-      (if (null? taglist)
-	(list viterbi backptr)
+  (lambda (a-matrix b-matrix o1 tags-index viterbi)
+    (if (null? tags-index)
+      viterbi
+      (let ([i (cdar tags-index)])
 	(viterbi-init a-matrix b-matrix o1
 		      (cdr tags-index)
-		      (list viterbi (* (matrix-ref 0 i a-matrix)
-				       (matrix-ref i o1 b-matrix)))
-		      (append backptr 0))))))
+		      (matrix-set viterbi i 0 (* (matrix-ref a-matrix 0 i)
+						 (matrix-ref b-matrix i o1))))))))
 
 ; @todo: optimize vars
 
@@ -264,10 +262,19 @@
        [tags-unique (filter-unique tags)]
 ; build tags index (make-hash)?
        [tags-index (index-list tags-unique)]
-; build words index (make-hash)?
-       [words-index (index-list words-unique)]
+; build words index
+       [words-index (make-hash (index-list words-unique))]
 ; build A matrix
        [a-matrix (get-a-matrix tags-dict tags tags-unique)]
 ; build B matrix
-       [b-matrix (get-b-matrix wts-dict tags-dict words tags-unique)])
-    (printf "a-matrix: ~a\n b-matrix: ~a\n" (matrix-render a-matrix) (matrix-render b-matrix)))
+       [b-matrix (get-b-matrix wts-dict tags-dict words tags-unique)]
+; the observations (words) to tag
+       [obs '("I" "want" "to" "try" "it")]
+; number of rows of viterbi and backptr matrices
+       [n (+ (length tags-unique) 2)]
+; number of cols of viterbi and backptr matrices
+       [m (length obs)]
+; 0-filled list to populate viterbi and backptr matrices
+       [lst-0 (build-list (* n m) (lambda (x) 0))])
+    (printf "a-matrix: ~a\n b-matrix: ~a\n" (matrix-render a-matrix) (matrix-render b-matrix))
+    (displayln (matrix-render (viterbi-init a-matrix b-matrix (hash-ref words-index (car obs)) tags-index (make-matrix n m lst-0)))))
