@@ -248,19 +248,70 @@
 ;   tags-index: list of (tag, index) pairs
 ;   viterbi: a (len(tags) + 2) x len(obs) initialized matrix
 ;   backptr: a (len(tags) + 2) x len(obs) initialized matrix
+;   t: observation index
 ; @out
 ;   viterbi: an initialized matrix, but the last col
 ;   backptr: an initialized matrix, but the last col
 (define viterbi-loop
-  (lambda (a-matrix b-matrix obs tags-index viterbi backptr)
+  (lambda (a-matrix b-matrix obs tags-index viterbi backptr
+		    [t 1])
     (if (null? obs)
       (list viterbi backptr)
-      (let* ([inner-loop (lambda (tags-index vit back)
-			  (if (null? tags-index)
+      (let* ([inner-loop (lambda (vit back
+				      [tags-left tags-index])
+			  (if (null? tags-left)
 			    (list vit back)
-			    (inner-loop (cdr tags-index) vit back)))]
+			    (let ([s (cdar tags-left)])
+			      (inner-loop
+			        (matrix-set vit s t (get-max vit s t a-matrix b-matrix tags-index (car obs)))
+				(matrix-set back s t (cdr (get-arg-max vit s t a-matrix tags-index)))
+				(cdr tags-left)))i))]
 	    [pair (inner-loop viterbi backptr)])
-	(viterbi-loop a-matrix b-matrix (cdr obs) tags-index (car pair) (cdar pair))))))
+	(viterbi-loop a-matrix b-matrix (cdr obs) tags-index (car pair) (cdar pair) (+ t 1))))))
+
+; return the maximum probability
+; @in
+;   viterbi: the Viterbi matrix
+;   s: the current state (tag)
+;   t: the current step (observation)
+;   a-matrix: the A matrix
+;   b-matrix: the B matrix
+;   tags-index: list of (tag, index) pairs
+;   obs: the index of observation at step t in matrix B
+; @out
+;   res: the maximum probability
+(define get-max
+  (lambda (viterbi s t a-matrix b-matrix tags-index obs
+		   [res 0])
+    (if (null? tags-index)
+      res
+      (let* ([ss (cdar tags-index)]
+	     [cur (* (* (matrix-ref viterbi ss (- t 1))
+			(matrix-ref a-matrix ss s))
+		     (matrix-ref b-matrix s obs))])
+	(get-max viterbi s t a-matrix b-matrix (cdr tags-index) obs (if (< res cur)
+								    cur
+								    res))))))
+; return a (max, index) pair of the maximum probability
+; @in
+;   viterbi: the Viterbi matrix
+;   s: the current state (tag)
+;   t: the current step (observation)
+;   a-matrix: the A matrix
+;   tags-index: list of (tag, index) pairs
+; @out
+;   res: a (max, index) pair
+(define get-arg-max
+  (lambda (viterbi s t a-matrix tags-index
+		   [res '(0 . 0)])
+    (if (null? tags-index)
+      res
+      (let* ([ss (cdar tags-index)]
+	     [cur (* (matrix-ref viterbi ss (- t 1))
+		     (matrix-ref a-matrix ss s))])
+	(get-arg-max viterbi s t a-matrix (cdr tags-index) (if (< (car res) cur)
+							     (cons cur ss)
+							     res))))))
 
 ; build a list of observations' indexes
 ; @in
@@ -274,6 +325,15 @@
     (if (null? obs)
       (flatten obs-index)
       (index-words (cdr obs) words-index (list obs-index (hash-ref words-index (car obs)))))))
+
+; apply part-of-speech tagging on text
+; @in
+;   obs: text to tag
+; @out
+;   pos: list of pairs (observation, tag)
+(define tag-it
+  (lambda (obs)
+    '()))
 
 ; @todo: optimize vars
 
