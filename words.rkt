@@ -269,7 +269,16 @@
 	    [pair (inner-loop viterbi backptr)])
 	(viterbi-loop a-matrix b-matrix (cdr obs) tags-index (car pair) (cadr pair) (+ t 1))))))
 
+(define viterbi-end
+  (lambda (pair a-matrix s t tags-index)
+    (let ([vit (car pair)]
+	  [back (cdr pair)])
+      (list
+        (matrix-set vit s t (get-max-end vit s t a-matrix tags-index))
+	(matrix-set back s t (get-arg-max-end vit s t a-matrix tags-index))))))
+
 ; @todo: combine get-max and get-arg-max in one proc
+; @todo: ditto for get-max-end and get-arg-max-end
 
 ; return the maximum probability
 ; @in
@@ -294,6 +303,19 @@
 	(get-max viterbi s t a-matrix b-matrix (cdr tags-index) obs (if (< res cur)
 								    cur
 								    res))))))
+
+(define get-max-end
+  (lambda (viterbi s t a-matrix tags-index
+		   [res 0])
+    (if (null? tags-index)
+      res
+      (let* ([ss (cdar tags-index)]
+	     [cur (* (matrix-ref viterbi ss t)
+		     (matrix-ref a-matrix ss s))])
+	(get-max-end viterbi s t a-matrix (cdr tags-index) (if (< res cur)
+							     cur
+							     res))))))
+
 ; return a (max, index) pair of the maximum probability
 ; @in
 ;   viterbi: the Viterbi matrix
@@ -315,6 +337,20 @@
 							     (cons cur ss)
 							     res))))))
 
+(define get-arg-max-end
+  (lambda (viterbi s t a-matrix tags-index
+		   [res '(0 . 0)])
+    (if (null? tags-index)
+      res
+      (let* ([ss (cdar tags-index)]
+	     [cur (* (matrix-ref viterbi ss t)
+		     (matrix-ref a-matrix ss s))])
+	(get-arg-max-end viterbi s t a-matrix (cdr tags-index) (if (< (car res) cur)
+								 (cons cur ss)
+								 res))))))
+
+; @todo: address the unknown word issue
+
 ; build a list of observations' indexes
 ; @in
 ;   obs: list of observations
@@ -326,7 +362,7 @@
 	       [obs-index '()])
     (if (null? obs)
       (flatten obs-index)
-      (index-words (cdr obs) words-index (list obs-index (hash-ref words-index (car obs)))))))
+      (index-words (cdr obs) words-index (list obs-index (hash-ref words-index (car obs) 0))))))
 
 ; apply part-of-speech tagging on text
 ; @in
@@ -374,15 +410,20 @@
 ; 0-filled list to populate viterbi and backptr matrices
        [lst-0 (build-list (* n m) (lambda (x) 0))])
     (printf "a-matrix: ~a\n b-matrix: ~a\n" (matrix-render a-matrix) (matrix-render b-matrix))
-    (displayln (matrix-render (viterbi-loop
-				a-matrix
-				b-matrix
-				(index-words obs words-index)
-				tags-index
-				(viterbi-init
-				  a-matrix
-				  b-matrix
-				  (hash-ref words-index (car obs))
-				  tags-index
-				  (make-matrix n m lst-0))
-				lst-0))))
+    (displayln (matrix-render (car (viterbi-end
+				     (viterbi-loop
+				       a-matrix
+				       b-matrix
+				       (index-words obs words-index)
+				       tags-index
+				       (viterbi-init
+				         a-matrix
+				         b-matrix
+				         (hash-ref words-index (car obs))
+				         tags-index
+				         (make-matrix n m lst-0))
+				       lst-0)
+				         a-matrix
+					 (- n 1)
+					 (- m 1)
+					 tags-index)))))
