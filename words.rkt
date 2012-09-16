@@ -406,7 +406,7 @@
 ; number of rows of viterbi and backptr matrices
        [n (+ (length tags-unique) 2)]
 ; number of cols of viterbi and backptr matrices
-       [m (length obs)]
+       [m (+ (length obs) 1)]
 ; 0-filled list to populate viterbi and backptr matrices
        [lst-0 (build-list (* n m) (lambda (x) 0))])
     (printf "a-matrix: ~a\n b-matrix: ~a\n" (matrix-render a-matrix) (matrix-render b-matrix))
@@ -422,7 +422,7 @@
 				         (hash-ref words-index (car obs))
 				         tags-index
 				         (make-matrix n m lst-0))
-				       lst-0)
+				       (make-matrix n m lst-0))
 				         a-matrix
 					 (- n 1)
 					 (- m 1)
