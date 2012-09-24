@@ -90,7 +90,6 @@
 ;   lst: a list
 ; @out
 ;   a list of pairs (item, index)
-
 (define index-list
   (lambda (lst
 	    [i 0])
@@ -196,6 +195,8 @@
       [taglist '("t1" "t2" "t3" "t4" "t5")])
   (displayln (get-a-row tags tag tag-count taglist)))
 
+; @todo: add start and end transition probabilities for beginning and final states
+
 ; build the A matrix
 ; @in
 ;   tags-dict: dictionary of (tag, count)
@@ -272,7 +273,9 @@
 (define viterbi-end
   (lambda (pair a-matrix s t tags-index)
     (let ([vit (car pair)]
-	  [back (cdr pair)])
+	  [back (cadr pair)])
+      (displayln (matrix-render vit))
+      (displayln (matrix-render back))
       (list
         (matrix-set vit s t (get-max-end vit s t a-matrix tags-index))
 	(matrix-set back s t (get-arg-max-end vit s t a-matrix tags-index))))))
@@ -424,6 +427,6 @@
 				         (make-matrix n m lst-0))
 				       (make-matrix n m lst-0))
 				         a-matrix
-					 (- n 1)
+					 (- n 3)
 					 (- m 1)
 					 tags-index)))))
