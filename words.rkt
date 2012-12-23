@@ -148,7 +148,7 @@
 		    [row '()])
     (if (null? words)
       (flatten row)
-      (get-b-row wts-dict (cdr words) tag tag-count (list row (/ (dict-ref wts-dict (string-append (car words) "/" tag) 0) tag-count))))))
+      (get-b-row wts-dict (cdr words) tag tag-count (list row (/ (+ 1 (dict-ref wts-dict (string-append (car words) "/" tag) 0)) (+ (dict-count wts-dict) tag-count)))))))
 
 ; basic testing
 (let ([wts-dict '(("w1/t1" . 1) ("w2/t1" . 2) ("w3/t2" . 1) ("w1/t2" . 4) ("w2/t2" . 5) ("w4/t3" . 2))]
@@ -440,8 +440,7 @@
 ; build B matrix
        [b-matrix (get-b-matrix wts-dict tags-dict words tags-unique)]
 ; the observations (words) to tag
-       ;[obs '("I" "want" "to" "try" "it")]
-       [obs '("I" "to" "it")]
+       [obs '("I" "want" "to" "try" "it")]
 ; number of rows of viterbi and backptr matrices
        [n (+ (length tags-unique) 2)]
 ; number of cols of viterbi and backptr matrices
